@@ -85,7 +85,8 @@ double calculateSuccessProbability(vector<vector<int>>& graph,
                     currentProbability * pow(killProbability, requiredBullets);
                 int newAvailableBullets =
                     currentNode.availableBullets - requiredBullets;
-                priorityQueue.push({newProb, {neighbor, newAvailableBullets}});
+                priorityQueue.push(
+                    {newProb, Node(neighbor, newAvailableBullets)});
             }
         }
     }
