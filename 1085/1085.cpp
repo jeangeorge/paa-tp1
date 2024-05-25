@@ -5,11 +5,25 @@
 
 using namespace std;
 
-int calculateShortestSequence(
-    string sourceLanguage, string targetLanguage,
-    map<string, vector<pair<string, string>>>& graph) {
+class Node {
+   public:
+    string key;
+
+    Node(string language, string word) { this->key = language + " " + word; }
+};
+
+int calculateShortestSequence(map<string, vector<pair<string, string>>> &graph,
+                              string sourceLanguage, string targetLanguage) {
+    // queue for bfs
     queue<pair<string, int>> queue;
+
     map<string, bool> visited;
+
+    for (auto [language1, language2word] : graph) {
+        for (auto [language2, word] : language2word) {
+            visited[language1 + " - " + language2 + " - " + word] = false;
+        }
+    }
 
     queue.push({sourceLanguage, 0});
     visited[sourceLanguage] = true;
@@ -18,18 +32,13 @@ int calculateShortestSequence(
         string currentLanguage = queue.front().first;
         int size = queue.front().second;
 
-        // cout << "currentLanguage: " << currentLanguage << " - size: " << size
-        //      << endl;
-
         queue.pop();
 
         if (currentLanguage == targetLanguage) {
             return size;
         }
 
-        // está errado
         for (pair<string, string> word : graph[currentLanguage]) {
-            cout << word.first << " - " << word.second << endl;
             if (word.second[0] != currentLanguage[0] && !visited[word.first]) {
                 queue.push({word.first, size + 1});
                 visited[word.first] = true;
@@ -37,7 +46,7 @@ int calculateShortestSequence(
         }
     }
 
-    return 0;
+    return -1;
 }
 
 int main() {
@@ -62,8 +71,9 @@ int main() {
         }
 
         int shortestSequence =
-            calculateShortestSequence(sourceLanguage, targetLanguage, graph);
-        if (shortestSequence > 0) {
+            calculateShortestSequence(graph, sourceLanguage, targetLanguage);
+
+        if (shortestSequence >= 0) {
             cout << shortestSequence << endl;
         } else {
             cout << "impossivel" << endl;
