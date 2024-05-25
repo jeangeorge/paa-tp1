@@ -29,7 +29,7 @@ class Graph {
    public:
     int numWords;
     vector<Node> nodes;
-    vector<vector<Node>> graph;
+    vector<vector<int>> graph;
 
     Graph(int numWords) {
         this->numWords = numWords;
@@ -55,15 +55,14 @@ class Graph {
             queue.pop();
 
             if (nodeContainsLanguage(node, targetLanguage)) {
-                if (currentLength < minLength) {
-                    minLength = currentLength;
-                    continue;
-                }
+                minLength = min(minLength, currentLength);
+                continue;
             }
 
-            for (Node neighbor : graph[node.id]) {
-                if (!visited[neighbor.id]) {
-                    visited[neighbor.id] = true;
+            for (int neighborId : graph[node.id]) {
+                Node &neighbor = nodes[neighborId];
+                if (!visited[neighborId]) {
+                    visited[neighborId] = true;
                     queue.push({neighbor, currentLength + neighbor.wordLength});
                 }
             }
@@ -84,13 +83,11 @@ class Graph {
     void createGraph() {
         graph.resize(this->numWords);
 
-        map<string, bool> comparisons;
-
         for (int i = 0; i < nodes.size(); i++) {
             for (int j = 0; j < nodes.size(); j++) {
                 if (nodesHaveSameLanguage(nodes[i], nodes[j])) {
-                    graph[i].push_back(nodes[j]);
-                    graph[j].push_back(nodes[i]);
+                    graph[i].push_back(j);
+                    graph[j].push_back(i);
                 }
             }
         }
