@@ -83,11 +83,19 @@ class Graph {
     void createGraph() {
         graph.resize(this->numWords);
 
-        for (int i = 0; i < nodes.size(); i++) {
-            for (int j = 0; j < nodes.size(); j++) {
-                if (nodesHaveSameLanguage(nodes[i], nodes[j])) {
-                    graph[i].push_back(j);
-                    graph[j].push_back(i);
+        map<string, vector<int>> graphMap;
+
+        for (int i = 0; i < this->numWords; i++) {
+            graphMap[nodes[i].language1].push_back(i);
+            graphMap[nodes[i].language2].push_back(i);
+        }
+
+        for (pair<string, vector<int>> entry : graphMap) {
+            vector<int> vertices = entry.second;
+            for (int i = 0; i < vertices.size(); i++) {
+                for (int j = i + 1; j < vertices.size(); j++) {
+                    graph[vertices[i]].push_back(vertices[j]);
+                    graph[vertices[j]].push_back(vertices[i]);
                 }
             }
         }
@@ -96,25 +104,15 @@ class Graph {
     bool nodeContainsLanguage(Node &node, string language) {
         return node.language1 == language || node.language2 == language;
     }
-
-    bool nodesHaveSameLanguage(Node node1, Node node2) {
-        return node1.language1 == node2.language1 ||
-               node1.language1 == node2.language2 ||
-               node1.language2 == node2.language2 ||
-               node1.language2 == node2.language1;
-    }
 };
 
 void printSolution(vector<int> &shortestSequences) {
     for (int i = 0; i < shortestSequences.size(); i++) {
         int shortestSequence = shortestSequences[i];
         if (shortestSequence < MAX_LENGTH) {
-            cout << shortestSequence;
+            cout << shortestSequence << endl;
         } else {
-            cout << "impossivel";
-        }
-        if (i < shortestSequences.size() - 1) {
-            cout << endl;
+            cout << "impossivel" << endl;
         }
     }
 }
