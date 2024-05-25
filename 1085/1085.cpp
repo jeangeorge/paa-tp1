@@ -1,83 +1,140 @@
 #include <iostream>
 #include <map>
 #include <queue>
+#include <string>
 #include <vector>
 
 using namespace std;
 
+const int MAX_LENGTH = 51;
+
 class Node {
    public:
-    string key;
+    int id;
+    string language1, language2, word;
+    char firstLetter;
+    int wordLength;
 
-    Node(string language, string word) { this->key = language + " " + word; }
+    Node(int id, string language1, string language2, string word) {
+        this->id = id;
+        this->language1 = language1;
+        this->language2 = language2;
+        this->word = word;
+        this->firstLetter = word[0];
+        this->wordLength = word.length();
+    }
 };
 
-int calculateShortestSequence(map<string, vector<pair<string, string>>> &graph,
-                              string sourceLanguage, string targetLanguage) {
-    // queue for bfs
-    queue<pair<string, int>> queue;
+class Graph {
+   public:
+    int numWords;
+    vector<Node> nodes;
+    vector<vector<Node>> graph;
 
-    map<string, bool> visited;
+    Graph(int numWords) {
+        this->numWords = numWords;
+        this->createNodes();
+        this->createGraph();
+    }
 
-    for (auto [language1, language2word] : graph) {
-        for (auto [language2, word] : language2word) {
-            visited[language1 + " - " + language2 + " - " + word] = false;
+    int calculateShortestSequence(string sourceLanguage,
+                                  string targetLanguage) {
+        int minLength = MAX_LENGTH;
+        queue<pair<Node, int>> queue;
+        vector<bool> visited(numWords, false);
+
+        for (int i = 0; i < this->numWords; i++) {
+            if (nodeContainsLanguage(nodes[i], sourceLanguage)) {
+                queue.push({nodes[i], nodes[i].wordLength});
+                visited[i] = true;
+            }
+        }
+
+        while (!queue.empty()) {
+            auto [node, currentLength] = queue.front();
+            queue.pop();
+
+            if (nodeContainsLanguage(node, targetLanguage)) {
+                if (currentLength < minLength) {
+                    minLength = currentLength;
+                    continue;
+                }
+            }
+
+            for (Node neighbor : graph[node.id]) {
+                if (!visited[neighbor.id]) {
+                    visited[neighbor.id] = true;
+                    queue.push({neighbor, currentLength + neighbor.wordLength});
+                }
+            }
+        }
+
+        return minLength;
+    }
+
+   private:
+    void createNodes() {
+        for (int i = 0; i < numWords; i++) {
+            string language1, language2, word;
+            cin >> language1 >> language2 >> word;
+            nodes.push_back(Node(i, language1, language2, word));
         }
     }
 
-    queue.push({sourceLanguage, 0});
-    visited[sourceLanguage] = true;
+    void createGraph() {
+        graph.resize(this->numWords);
 
-    while (!queue.empty()) {
-        string currentLanguage = queue.front().first;
-        int size = queue.front().second;
+        map<string, bool> comparisons;
 
-        queue.pop();
-
-        if (currentLanguage == targetLanguage) {
-            return size;
-        }
-
-        for (pair<string, string> word : graph[currentLanguage]) {
-            if (word.second[0] != currentLanguage[0] && !visited[word.first]) {
-                queue.push({word.first, size + 1});
-                visited[word.first] = true;
+        for (int i = 0; i < nodes.size(); i++) {
+            for (int j = 0; j < nodes.size(); j++) {
+                if (nodesHaveSameLanguage(nodes[i], nodes[j])) {
+                    graph[i].push_back(nodes[j]);
+                    graph[j].push_back(nodes[i]);
+                }
             }
         }
     }
 
-    return -1;
+    bool nodeContainsLanguage(Node &node, string language) {
+        return node.language1 == language || node.language2 == language;
+    }
+
+    bool nodesHaveSameLanguage(Node node1, Node node2) {
+        return node1.language1 == node2.language1 ||
+               node1.language1 == node2.language2 ||
+               node1.language2 == node2.language2 ||
+               node1.language2 == node2.language1;
+    }
+};
+
+void printSolution(vector<int> &shortestSequences) {
+    for (int i = 0; i < shortestSequences.size(); i++) {
+        int shortestSequence = shortestSequences[i];
+        if (shortestSequence < MAX_LENGTH) {
+            cout << shortestSequence;
+        } else {
+            cout << "impossivel";
+        }
+        if (i < shortestSequences.size() - 1) {
+            cout << endl;
+        }
+    }
 }
 
 int main() {
-    while (true) {
-        int M;
-        cin >> M;
+    int numWords;
+    string sourceLanguage, targetLanguage;
+    vector<int> shortestSequences;
 
-        if (M == 0) {
-            break;
-        }
-
-        string sourceLanguage, targetLanguage;
-        map<string, vector<pair<string, string>>> graph;
-
+    while (cin >> numWords && numWords != 0) {
         cin >> sourceLanguage >> targetLanguage;
-
-        for (int i = 0; i < M; i++) {
-            string language1, language2, word;
-            cin >> language1 >> language2 >> word;
-            graph[language1].push_back({language2, word});
-            graph[language2].push_back({language1, word});
-        }
-
-        int shortestSequence =
-            calculateShortestSequence(graph, sourceLanguage, targetLanguage);
-
-        if (shortestSequence >= 0) {
-            cout << shortestSequence << endl;
-        } else {
-            cout << "impossivel" << endl;
-        }
+        Graph graph = Graph(numWords);
+        shortestSequences.push_back(
+            graph.calculateShortestSequence(sourceLanguage, targetLanguage));
     }
+
+    printSolution(shortestSequences);
+
     return 0;
 }
