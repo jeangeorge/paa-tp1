@@ -1,6 +1,7 @@
 #include <iostream>
 #include <map>
 #include <queue>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -23,13 +24,19 @@ class Node {
         this->firstLetter = word[0];
         this->wordLength = word.length();
     }
+
+    string toString() {
+        return "[" + to_string(this->id) + "," + this->language1 + "," +
+               this->language2 + "," + this->word + "," + this->firstLetter +
+               "," + to_string(this->wordLength) + "]";
+    }
 };
 
 class Graph {
    public:
     int numWords;
     vector<Node> nodes;
-    vector<vector<int>> graph;
+    vector<set<int>> graph;
 
     Graph(int numWords) {
         this->numWords = numWords;
@@ -71,6 +78,25 @@ class Graph {
         return minLength;
     }
 
+    void printGraph() {
+        cout << "graph:" << endl;
+        for (int i = 0; i < graph.size(); i++) {
+            cout << i << ": " << endl;
+            for (auto j : graph[i]) {
+                cout << nodes[j].toString() << endl;
+            }
+            cout << endl;
+            cout << endl;
+        }
+    }
+
+    void printNodes() {
+        cout << "nodes: " << endl;
+        for (Node node : nodes) {
+            cout << node.toString() << endl;
+        }
+    }
+
    private:
     void createNodes() {
         for (int i = 0; i < numWords; i++) {
@@ -94,8 +120,8 @@ class Graph {
             vector<int> vertices = entry.second;
             for (int i = 0; i < vertices.size(); i++) {
                 for (int j = i + 1; j < vertices.size(); j++) {
-                    graph[vertices[i]].push_back(vertices[j]);
-                    graph[vertices[j]].push_back(vertices[i]);
+                    graph[vertices[i]].insert(vertices[j]);
+                    graph[vertices[j]].insert(vertices[i]);
                 }
             }
         }
@@ -125,6 +151,7 @@ int main() {
     while (cin >> numWords && numWords != 0) {
         cin >> sourceLanguage >> targetLanguage;
         Graph graph = Graph(numWords);
+
         shortestSequences.push_back(
             graph.calculateShortestSequence(sourceLanguage, targetLanguage));
     }
