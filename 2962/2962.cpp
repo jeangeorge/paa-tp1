@@ -1,5 +1,5 @@
+#include <cmath>
 #include <iostream>
-#include <map>
 #include <queue>
 #include <vector>
 
@@ -16,100 +16,109 @@ class Sensor {
         : point(point), sensibility(sensibility) {}
 };
 
-bool isCoveredBySensor(int x, int y, const vector<Sensor>& sensors) {
-    for (Sensor sensor : sensors) {
-        int distanceX = x - sensor.point.first;
-        int distanceY = y - sensor.point.second;
-        if (distanceX * distanceX + distanceY * distanceY <=
-            sensor.sensibility * sensor.sensibility) {
-            return true;
-        }
-    }
-    return false;
-}
+// BFS
+bool hasPath(const vector<vector<int>>& sensorGraph, int originIndex,
+             int destinyIndex) {
+    queue<int> queue;
+    vector<bool> visited(sensorGraph.size(), false);
 
-bool canMoveTo(int x, int y, const vector<Sensor>& sensors, int M, int N,
-               const vector<vector<bool>>& visited) {
-    return x >= 0 && x <= M && y >= 0 && y <= N && !visited[x][y] &&
-           !isCoveredBySensor(x, y, sensors);
-}
-
-void moveTo(int x, int y, queue<Point>& queue, vector<vector<bool>>& visited) {
-    queue.push({x, y});
-    visited[x][y] = true;
-}
-
-bool hasPath(int M, int N, const vector<Sensor>& sensors) {
-    if (isCoveredBySensor(0, 0, sensors)) {
-        return false;
-    }
-
-    if (isCoveredBySensor(M, N, sensors)) {
-        return false;
-    }
-
-    queue<Point> queue;
-    vector<vector<bool>> visited(M + 1, vector<bool>(N + 1, false));
-
-    moveTo(0, 0, queue, visited);
+    queue.push(originIndex);
+    visited[originIndex] = true;
 
     while (!queue.empty()) {
-        auto [x, y] = queue.front();
+        int currentIndex = queue.front();
         queue.pop();
 
-        if (x == M && y == N) {
+        if (currentIndex == destinyIndex) {
             return true;
         }
 
-        if (canMoveTo(x - 1, y - 1, sensors, M, N, visited)) {
-            moveTo(x - 1, y - 1, queue, visited);
-        }
-
-        if (canMoveTo(x - 1, y, sensors, M, N, visited)) {
-            moveTo(x - 1, y, queue, visited);
-        }
-
-        if (canMoveTo(x - 1, y + 1, sensors, M, N, visited)) {
-            moveTo(x - 1, y + 1, queue, visited);
-        }
-
-        if (canMoveTo(x, y - 1, sensors, M, N, visited)) {
-            moveTo(x, y - 1, queue, visited);
-        }
-
-        if (canMoveTo(x, y + 1, sensors, M, N, visited)) {
-            moveTo(x, y + 1, queue, visited);
-        }
-
-        if (canMoveTo(x + 1, y - 1, sensors, M, N, visited)) {
-            moveTo(x + 1, y - 1, queue, visited);
-        }
-
-        if (canMoveTo(x + 1, y, sensors, M, N, visited)) {
-            moveTo(x + 1, y, queue, visited);
-        }
-
-        if (canMoveTo(x + 1, y + 1, sensors, M, N, visited)) {
-            moveTo(x + 1, y + 1, queue, visited);
+        for (int neighborIndex : sensorGraph[currentIndex]) {
+            if (!visited[neighborIndex]) {
+                visited[neighborIndex] = true;
+                queue.push(neighborIndex);
+            }
         }
     }
 
     return false;
+}
+
+bool hasOverlap(const Sensor& sensor1, const Sensor& sensor2) {
+    auto [x1, y1] = sensor1.point;
+    auto [x2, y2] = sensor2.point;
+
+    double distance = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+    double radiusSum = sensor1.sensibility + sensor2.sensibility;
+
+    return distance <= radiusSum;
+}
+
+vector<vector<int>> createSensorGraph(const vector<Sensor>& sensors,
+                                      Sensor& originSensor,
+                                      Sensor& destinySensor, int originIndex,
+                                      int destinyIndex) {
+    int numSensors = sensors.size();
+    vector<vector<int>> sensorGraph(numSensors + 2);
+
+    // Itera em todos os sensores
+    for (int i = 0; i < numSensors; i++) {
+        // Verifico se existe interseção entre algum sensor e o sensor de origem
+        if (hasOverlap(sensors[i], originSensor)) {
+            // Se houver, adiciona aresta no grafo
+            sensorGraph[originIndex].push_back(i);
+            sensorGraph[i].push_back(originIndex);
+        }
+
+        // Verifico se existe interseção entre algum sensor e o sensor de
+        // destino
+        if (hasOverlap(sensors[i], destinySensor)) {
+            // Se houver, adiciona aresta no grafo
+            sensorGraph[destinyIndex].push_back(i);
+            sensorGraph[i].push_back(destinyIndex);
+        }
+
+        // Novo loop para pegar cada sensor 2 a 2
+        for (int j = i + 1; j < numSensors; j++) {
+            // Verifico se os sensores (exceto origem e destino) se intersectam.
+            // Se sim, cria aresta entre eles no grafo
+            if (hasOverlap(sensors[i], sensors[j])) {
+                sensorGraph[i].push_back(j);
+                sensorGraph[j].push_back(i);
+            }
+        }
+    }
+
+    return sensorGraph;
 }
 
 int main() {
     int M, N, numSensors;
     cin >> M >> N >> numSensors;
 
+    // Faz a leitura dos sensores
     vector<Sensor> sensors;
-
     for (int i = 0; i < numSensors; i++) {
         int xSensor, ySensor, sensibility;
         cin >> xSensor >> ySensor >> sensibility;
         sensors.push_back(Sensor({xSensor, ySensor}, sensibility));
     }
 
-    if (hasPath(M, N, sensors)) {
+    // Dois sensores auxiliares
+    // A ideia é que eles sirvam somente para marcar a origem e destino
+    Sensor originSensor({0, 0}, 0), destinySensor({M, N}, 0);
+
+    int originIndex = numSensors,
+        destinyIndex = numSensors + 1;  // vamos armazenar a origem e destino no
+                                        // fim da lista de adjacencia
+
+    vector<vector<int>> sensorGraph = createSensorGraph(
+        sensors, originSensor, destinySensor, originIndex, destinyIndex);
+
+    // Verifico se existe caminho saindo do sensor de origem e chegando no
+    // sensor de destino. Se houver significa que o ladrão não conseguirá
+    // alcançar a obra
+    if (!hasPath(sensorGraph, originIndex, destinyIndex)) {
         cout << "S" << endl;
     } else {
         cout << "N" << endl;
