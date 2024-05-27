@@ -43,7 +43,7 @@ bool hasPath(const vector<vector<int>>& sensorGraph, int originIndex,
     return false;
 }
 
-bool hasOverlap(Sensor& sensor1, Sensor& sensor2) {
+bool hasOverlapBetweenSensors(Sensor& sensor1, Sensor& sensor2) {
     auto [x1, y1] = sensor1.point;
     auto [x2, y2] = sensor2.point;
 
@@ -51,6 +51,14 @@ bool hasOverlap(Sensor& sensor1, Sensor& sensor2) {
     double radiusSum = sensor1.sensibility + sensor2.sensibility;
 
     return distance <= radiusSum;
+}
+
+bool hasOverlapBetweenSensorAndPoint(Sensor& sensor, Point point) {
+    auto [x, y] = sensor.point;
+    auto [px, py] = point;
+
+    double distance = sqrt(pow(x - px, 2) + pow(y - py, 2));
+    return distance <= sensor.sensibility;
 }
 
 vector<Sensor> createSensors(int numSensors, int M, int N) {
@@ -70,16 +78,30 @@ vector<Sensor> createSensors(int numSensors, int M, int N) {
     return sensors;
 }
 
-vector<vector<int>> createSensorGraph(vector<Sensor>& sensors) {
+vector<vector<int>> createSensorGraph(vector<Sensor>& sensors, int M, int N) {
     int numSensors = sensors.size();
     vector<vector<int>> sensorGraph(numSensors);
 
     for (int i = 0; i < numSensors; i++) {
         for (int j = i + 1; j < numSensors; j++) {
-            if (hasOverlap(sensors[i], sensors[j])) {
+            if (hasOverlapBetweenSensors(sensors[i], sensors[j])) {
                 sensorGraph[i].push_back(j);
                 sensorGraph[j].push_back(i);
             }
+        }
+    }
+
+    int originSensorIndex = 0, destinySensorIndex = numSensors - 1;
+
+    for (int i = 1; i < numSensors - 1; i++) {
+        if (hasOverlapBetweenSensorAndPoint(sensors[i], {0, 0})) {
+            sensorGraph[i].push_back(originSensorIndex);
+            sensorGraph[originSensorIndex].push_back(i);
+        }
+
+        if (hasOverlapBetweenSensorAndPoint(sensors[i], {M, N})) {
+            sensorGraph[i].push_back(destinySensorIndex);
+            sensorGraph[destinySensorIndex].push_back(i);
         }
     }
 
@@ -91,7 +113,7 @@ int main() {
     cin >> M >> N >> numSensors;
 
     vector<Sensor> sensors = createSensors(numSensors, M, N);
-    vector<vector<int>> sensorGraph = createSensorGraph(sensors);
+    vector<vector<int>> sensorGraph = createSensorGraph(sensors, M, N);
 
     if (hasPath(sensorGraph, 0, sensors.size() - 1)) {
         cout << "N" << endl;
