@@ -43,6 +43,29 @@ bool hasPath(const vector<vector<int>>& sensorGraph, int originIndex,
     return false;
 }
 
+bool canSteal(const vector<vector<int>>& sensorGraph, int numSensors) {
+    int leftIndex = numSensors, bottomIndex = numSensors + 1,
+        rightIndex = numSensors + 2, topIndex = numSensors + 3;
+
+    if (hasPath(sensorGraph, leftIndex, bottomIndex)) {
+        return false;
+    }
+
+    if (hasPath(sensorGraph, leftIndex, rightIndex)) {
+        return false;
+    }
+
+    if (hasPath(sensorGraph, topIndex, bottomIndex)) {
+        return false;
+    }
+
+    if (hasPath(sensorGraph, topIndex, rightIndex)) {
+        return false;
+    }
+
+    return true;
+}
+
 bool hasOverlapBetweenSensors(Sensor& sensor1, Sensor& sensor2) {
     auto [x1, y1] = sensor1.point;
     auto [x2, y2] = sensor2.point;
@@ -53,19 +76,8 @@ bool hasOverlapBetweenSensors(Sensor& sensor1, Sensor& sensor2) {
     return distance <= radiusSum;
 }
 
-bool hasOverlapBetweenSensorAndPoint(Sensor& sensor, Point point) {
-    auto [x, y] = sensor.point;
-    auto [px, py] = point;
-
-    double distance = sqrt(pow(x - px, 2) + pow(y - py, 2));
-    return distance <= sensor.sensibility;
-}
-
 vector<Sensor> createSensors(int numSensors, int M, int N) {
     vector<Sensor> sensors;
-    Sensor originSensor({0, 0}, 0), destinySensor({M, N}, 0);
-
-    sensors.push_back(originSensor);
 
     for (int i = 0; i < numSensors; i++) {
         int xSensor, ySensor, sensibility;
@@ -73,14 +85,12 @@ vector<Sensor> createSensors(int numSensors, int M, int N) {
         sensors.push_back(Sensor({xSensor, ySensor}, sensibility));
     }
 
-    sensors.push_back(destinySensor);
-
     return sensors;
 }
 
-vector<vector<int>> createSensorGraph(vector<Sensor>& sensors, int M, int N) {
+vector<vector<int>> createGraph(vector<Sensor>& sensors, int M, int N) {
     int numSensors = sensors.size();
-    vector<vector<int>> sensorGraph(numSensors);
+    vector<vector<int>> sensorGraph(numSensors + 4);
 
     for (int i = 0; i < numSensors; i++) {
         for (int j = i + 1; j < numSensors; j++) {
@@ -91,17 +101,31 @@ vector<vector<int>> createSensorGraph(vector<Sensor>& sensors, int M, int N) {
         }
     }
 
-    int originSensorIndex = 0, destinySensorIndex = numSensors - 1;
+    int leftIndex = numSensors, bottomIndex = numSensors + 1,
+        rightIndex = numSensors + 2, topIndex = numSensors + 3;
 
-    for (int i = 1; i < numSensors - 1; i++) {
-        if (hasOverlapBetweenSensorAndPoint(sensors[i], {0, 0})) {
-            sensorGraph[i].push_back(originSensorIndex);
-            sensorGraph[originSensorIndex].push_back(i);
+    for (int i = 0; i < numSensors; i++) {
+        auto [x, y] = sensors[i].point;
+        auto s = sensors[i].sensibility;
+
+        if (x - s <= 0) {
+            sensorGraph[i].push_back(leftIndex);
+            sensorGraph[leftIndex].push_back(i);
         }
 
-        if (hasOverlapBetweenSensorAndPoint(sensors[i], {M, N})) {
-            sensorGraph[i].push_back(destinySensorIndex);
-            sensorGraph[destinySensorIndex].push_back(i);
+        if (y - s <= 0) {
+            sensorGraph[i].push_back(bottomIndex);
+            sensorGraph[bottomIndex].push_back(i);
+        }
+
+        if (x + s >= M) {
+            sensorGraph[i].push_back(rightIndex);
+            sensorGraph[rightIndex].push_back(i);
+        }
+
+        if (y + s >= N) {
+            sensorGraph[i].push_back(topIndex);
+            sensorGraph[topIndex].push_back(i);
         }
     }
 
@@ -113,12 +137,12 @@ int main() {
     cin >> M >> N >> numSensors;
 
     vector<Sensor> sensors = createSensors(numSensors, M, N);
-    vector<vector<int>> sensorGraph = createSensorGraph(sensors, M, N);
+    vector<vector<int>> sensorGraph = createGraph(sensors, M, N);
 
-    if (hasPath(sensorGraph, 0, sensors.size() - 1)) {
-        cout << "N" << endl;
-    } else {
+    if (canSteal(sensorGraph, numSensors)) {
         cout << "S" << endl;
+    } else {
+        cout << "N" << endl;
     }
 
     return 0;
