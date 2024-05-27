@@ -16,7 +16,6 @@ class Sensor {
         : point(point), sensibility(sensibility) {}
 };
 
-// BFS
 bool hasPath(const vector<vector<int>>& sensorGraph, int originIndex,
              int destinyIndex) {
     queue<int> queue;
@@ -44,7 +43,7 @@ bool hasPath(const vector<vector<int>>& sensorGraph, int originIndex,
     return false;
 }
 
-bool hasOverlap(const Sensor& sensor1, const Sensor& sensor2) {
+bool hasOverlap(Sensor& sensor1, Sensor& sensor2) {
     auto [x1, y1] = sensor1.point;
     auto [x2, y2] = sensor2.point;
 
@@ -54,34 +53,29 @@ bool hasOverlap(const Sensor& sensor1, const Sensor& sensor2) {
     return distance <= radiusSum;
 }
 
-vector<vector<int>> createSensorGraph(const vector<Sensor>& sensors,
-                                      Sensor& originSensor,
-                                      Sensor& destinySensor, int originIndex,
-                                      int destinyIndex) {
-    int numSensors = sensors.size();
-    vector<vector<int>> sensorGraph(numSensors + 2);
+vector<Sensor> createSensors(int numSensors, int M, int N) {
+    vector<Sensor> sensors;
+    Sensor originSensor({0, 0}, 0), destinySensor({M, N}, 0);
 
-    // Itera em todos os sensores
+    sensors.push_back(originSensor);
+
     for (int i = 0; i < numSensors; i++) {
-        // Verifico se existe interseção entre algum sensor e o sensor de origem
-        if (hasOverlap(sensors[i], originSensor)) {
-            // Se houver, adiciona aresta no grafo
-            sensorGraph[originIndex].push_back(i);
-            sensorGraph[i].push_back(originIndex);
-        }
+        int xSensor, ySensor, sensibility;
+        cin >> xSensor >> ySensor >> sensibility;
+        sensors.push_back(Sensor({xSensor, ySensor}, sensibility));
+    }
 
-        // Verifico se existe interseção entre algum sensor e o sensor de
-        // destino
-        if (hasOverlap(sensors[i], destinySensor)) {
-            // Se houver, adiciona aresta no grafo
-            sensorGraph[destinyIndex].push_back(i);
-            sensorGraph[i].push_back(destinyIndex);
-        }
+    sensors.push_back(destinySensor);
 
-        // Novo loop para pegar cada sensor 2 a 2
+    return sensors;
+}
+
+vector<vector<int>> createSensorGraph(vector<Sensor>& sensors) {
+    int numSensors = sensors.size();
+    vector<vector<int>> sensorGraph(numSensors);
+
+    for (int i = 0; i < numSensors; i++) {
         for (int j = i + 1; j < numSensors; j++) {
-            // Verifico se os sensores (exceto origem e destino) se intersectam.
-            // Se sim, cria aresta entre eles no grafo
             if (hasOverlap(sensors[i], sensors[j])) {
                 sensorGraph[i].push_back(j);
                 sensorGraph[j].push_back(i);
@@ -96,32 +90,13 @@ int main() {
     int M, N, numSensors;
     cin >> M >> N >> numSensors;
 
-    // Faz a leitura dos sensores
-    vector<Sensor> sensors;
-    for (int i = 0; i < numSensors; i++) {
-        int xSensor, ySensor, sensibility;
-        cin >> xSensor >> ySensor >> sensibility;
-        sensors.push_back(Sensor({xSensor, ySensor}, sensibility));
-    }
+    vector<Sensor> sensors = createSensors(numSensors, M, N);
+    vector<vector<int>> sensorGraph = createSensorGraph(sensors);
 
-    // Dois sensores auxiliares
-    // A ideia é que eles sirvam somente para marcar a origem e destino
-    Sensor originSensor({0, 0}, 0), destinySensor({M, N}, 0);
-
-    int originIndex = numSensors,
-        destinyIndex = numSensors + 1;  // vamos armazenar a origem e destino no
-                                        // fim da lista de adjacencia
-
-    vector<vector<int>> sensorGraph = createSensorGraph(
-        sensors, originSensor, destinySensor, originIndex, destinyIndex);
-
-    // Verifico se existe caminho saindo do sensor de origem e chegando no
-    // sensor de destino. Se houver significa que o ladrão não conseguirá
-    // alcançar a obra
-    if (!hasPath(sensorGraph, originIndex, destinyIndex)) {
-        cout << "S" << endl;
-    } else {
+    if (hasPath(sensorGraph, 0, sensors.size() - 1)) {
         cout << "N" << endl;
+    } else {
+        cout << "S" << endl;
     }
 
     return 0;
